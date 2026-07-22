@@ -166,9 +166,9 @@
   .cal-dia{background:var(--branco); border:1.5px solid var(--linha); border-radius:9px; min-height:64px; padding:5px; font-size:10.5px; position:relative; overflow:hidden;}
   .cal-dia.fora{background:transparent; border-color:transparent;}
   .cal-dia.hoje{border-color:var(--indigo); border-width:2px;}
-  .cal-dia .num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:var(--carvao);}
-  .cal-dia.fora .num{color:var(--tinta2); opacity:.5;}
-  .cal-dia.hoje .num{color:var(--indigo); font-weight:800;}
+  .cal-dia .num{display:inline-block; font-family:'IBM Plex Mono',monospace; font-weight:800; font-size:12.5px; color:var(--carvao); background:var(--linho2); padding:2px 7px; border-radius:7px; line-height:1.5;}
+  .cal-dia.fora .num{color:var(--tinta2); background:transparent; opacity:.5;}
+  .cal-dia.hoje .num{color:#fff; background:var(--indigo); font-weight:800;}
   .cal-dia.hoje{background:#EFF3F2;}
   .cal-evento{margin-top:3px; border-radius:5px; padding:2px 5px; font-size:9.5px; font-weight:700; color:var(--linho); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default;}
   .cal-evento.mais{background:transparent; color:var(--tinta2); font-weight:600;}
@@ -178,7 +178,7 @@
 
   @media (min-width:860px){
     .cal-dia{min-height:86px; padding:7px;}
-    .cal-dia .num{font-size:13px;}
+    .cal-dia .num{font-size:13.5px; padding:3px 8px;}
     .cal-grid{gap:8px;}
   }
 
@@ -1726,23 +1726,39 @@ function dentroPeriodo(data, inicioISO, fimISO){
 function renderRelatorios(){
   const { inicio, fim } = periodoRelatorio;
 
-  // ---- Relatório 1: Faturamento por período (orçamentos aprovados com aprovação no período) ----
+  // ---- Faturamento por período (orçamentos aprovados com aprovação no período) ----
   const aprovadosNoPeriodo = orcamentos.filter(o=>o.status==='aprovado' && dentroPeriodo(o.dataAprovacao, inicio, fim));
   const faturamento = aprovadosNoPeriodo.reduce((s,o)=>s+o.total,0);
+  const ticketMedio = aprovadosNoPeriodo.length>0 ? faturamento/aprovadosNoPeriodo.length : 0;
 
-  // ---- Relatório 2: Orçamentos x aprovados (conversão) — criados no período ----
+  // ---- Orçamentos criados no período (base pra conversão e listagem completa) ----
   const criadosNoPeriodo = orcamentos.filter(o=>dentroPeriodo(o.dataCriacao, inicio, fim));
   const aprovadosDosCriados = criadosNoPeriodo.filter(o=>o.status==='aprovado');
   const taxaConversao = criadosNoPeriodo.length>0 ? (aprovadosDosCriados.length/criadosNoPeriodo.length*100) : 0;
 
-  // ---- Relatório 3: Consumo de materiais por período (OPs geradas no período) ----
+  // ---- Perdidos no período (perda registrada dentro do intervalo) ----
+  const perdidosNoPeriodo = orcamentos.filter(o=>o.status==='perdido' && dentroPeriodo(o.dataPerda, inicio, fim));
+  const valorPerdido = perdidosNoPeriodo.reduce((s,o)=>s+o.total,0);
+  const motivosAgrupados = MOTIVOS_PERDA.map(m=>({
+    label:m.label, qtd: perdidosNoPeriodo.filter(o=>o.motivoPerda===m.chave).length
+  })).filter(m=>m.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+
+  // ---- Consumo de materiais por período (OPs geradas no período) ----
   const opsNoPeriodo = producao.filter(p=>dentroPeriodo(p.dataAprovacao, inicio, fim));
   const consumoAgregado = agregarMateriais(opsNoPeriodo.flatMap(p=>p.pecas));
+
+  // ---- Peças por tipo e ambientes mais pedidos (orçamentos criados no período) ----
+  const todasPecasCriadas = criadosNoPeriodo.flatMap(o=>o.itens);
+  const qtdCortina = todasPecasCriadas.filter(p=>p.tipoPeca==='cortina').length;
+  const qtdPersiana = todasPecasCriadas.filter(p=>p.tipoPeca==='persiana').length;
+  const contagemAmbiente = {};
+  todasPecasCriadas.forEach(p=>{ contagemAmbiente[p.local] = (contagemAmbiente[p.local]||0)+1; });
+  const topAmbientes = Object.entries(contagemAmbiente).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
   return `
     <div class="cartao">
       <h2>Relatórios</h2>
-      <p class="sub">Escolha o período — os 3 relatórios abaixo recalculam juntos.</p>
+      <p class="sub">Escolha o período — todos os relatórios abaixo recalculam juntos.</p>
       <div class="campo-linha">
         <div class="campo">
           <label>De</label>
@@ -1753,6 +1769,7 @@ function renderRelatorios(){
           <input type="date" id="inPeriodoFim" value="${fim}" onchange="atualizarPeriodo()" style="width:100%; padding:12px; border:1.5px solid var(--linha); border-radius:12px; font-family:'IBM Plex Mono',monospace; background:var(--linho2); color:var(--carvao);">
         </div>
       </div>
+      <button class="btn-secundario" onclick="imprimirRelatorio()">🖨️ Imprimir relatório completo</button>
     </div>
 
     <div class="resultado-header">
@@ -1761,6 +1778,10 @@ function renderRelatorios(){
       <div class="orc-total-row">
         <div class="orc-total-label">Orçamentos aprovados no período</div>
         <div class="orc-total-valor" style="font-size:16px;">${aprovadosNoPeriodo.length}</div>
+      </div>
+      <div class="orc-total-row">
+        <div class="orc-total-label">Ticket médio (por orçamento aprovado)</div>
+        <div class="orc-total-valor" style="font-size:16px;">R$ ${fmt(ticketMedio)}</div>
       </div>
     </div>
     <div class="como-ler">
@@ -1786,6 +1807,33 @@ function renderRelatorios(){
     </div>
 
     <div class="cartao">
+      <h2>Orçamentos perdidos no período</h2>
+      <div class="campo-linha" style="margin-bottom:4px;">
+        <div class="kpi-card" style="flex:1;"><div class="n">${perdidosNoPeriodo.length}</div><div class="l">orçamentos perdidos</div></div>
+        <div class="kpi-card" style="flex:1;"><div class="n">R$ ${fmt(valorPerdido)}</div><div class="l">valor perdido</div></div>
+      </div>
+      ${motivosAgrupados.length===0 ? `<div class="vazio">Nenhum orçamento perdido nesse período.</div>` :
+        motivosAgrupados.map(m=>`<div class="linha-conta"><span class="desc">${m.label}</span><b>${m.qtd}</b></div>`).join('')
+      }
+    </div>
+    <div class="como-ler">
+      <b>Como ler:</b> considera orçamentos marcados como perdido <b>dentro do período</b> (data em que
+      foi marcado, não a data de criação). Motivo de perda vem da lista fixa escolhida na tela Orçamentos.
+    </div>
+
+    <div class="cartao">
+      <h2>Peças pedidas no período</h2>
+      <div class="campo-linha" style="margin-bottom:4px;">
+        <div class="kpi-card" style="flex:1;"><div class="n">${qtdCortina}</div><div class="l">cortinas</div></div>
+        <div class="kpi-card" style="flex:1;"><div class="n">${qtdPersiana}</div><div class="l">persianas</div></div>
+      </div>
+      ${topAmbientes.length>0 ? `
+        <div style="font-size:11.5px; font-weight:700; color:var(--tinta2); text-transform:uppercase; letter-spacing:.04em; margin:14px 0 6px;">Ambientes mais pedidos</div>
+        ${topAmbientes.map(([local,qtd])=>`<div class="linha-conta"><span class="desc">${local}</span><b>${qtd}</b></div>`).join('')}
+      ` : ''}
+    </div>
+
+    <div class="cartao">
       <h2>Consumo de materiais no período</h2>
       <p class="sub">Somado de todas as Ordens de Produção geradas (orçamentos aprovados) no período.</p>
       ${consumoAgregado.length===0 ? `<div class="vazio">Nenhuma OP gerada nesse período.</div>` :
@@ -1797,11 +1845,157 @@ function renderRelatorios(){
     </div>
     <div class="como-ler">
       <b>Como ler:</b> é o mesmo consumo que já é usado pra dar baixa no estoque — aqui só está somado
-      por período, útil pra planejar compra de matéria-prima do próximo ciclo.<br><br>
-      <b>Premissa desta prova de conceito:</b> os 3 relatórios recalculam a partir do que está em
-      memória nesta sessão — nada é persistido entre sessões ainda.
+      por período, útil pra planejar compra de matéria-prima do próximo ciclo.
+    </div>
+
+    <div class="cartao">
+      <h2>Todos os orçamentos criados no período (${criadosNoPeriodo.length})</h2>
+      ${criadosNoPeriodo.length===0 ? `<div class="vazio">Nenhum orçamento criado nesse período.</div>` :
+        criadosNoPeriodo.slice().reverse().map(o=>`
+          <div class="linha-conta">
+            <span class="desc">Nº ${o.numero} — ${o.cliente} <span style="color:var(--tinta2);">(${o.status})</span></span>
+            <span>R$ ${fmt(o.total)}</span>
+          </div>`).join('')
+      }
     </div>
   `;
+}
+
+// ---- Relatório completo pra impressão (mesmos dados da tela, formatado pra papel) ----
+function imprimirRelatorio(){
+  const { inicio, fim } = periodoRelatorio;
+
+  const aprovadosNoPeriodo = orcamentos.filter(o=>o.status==='aprovado' && dentroPeriodo(o.dataAprovacao, inicio, fim));
+  const faturamento = aprovadosNoPeriodo.reduce((s,o)=>s+o.total,0);
+  const ticketMedio = aprovadosNoPeriodo.length>0 ? faturamento/aprovadosNoPeriodo.length : 0;
+
+  const criadosNoPeriodo = orcamentos.filter(o=>dentroPeriodo(o.dataCriacao, inicio, fim));
+  const aprovadosDosCriados = criadosNoPeriodo.filter(o=>o.status==='aprovado');
+  const taxaConversao = criadosNoPeriodo.length>0 ? (aprovadosDosCriados.length/criadosNoPeriodo.length*100) : 0;
+
+  const perdidosNoPeriodo = orcamentos.filter(o=>o.status==='perdido' && dentroPeriodo(o.dataPerda, inicio, fim));
+  const valorPerdido = perdidosNoPeriodo.reduce((s,o)=>s+o.total,0);
+  const motivosAgrupados = MOTIVOS_PERDA.map(m=>({
+    label:m.label, qtd: perdidosNoPeriodo.filter(o=>o.motivoPerda===m.chave).length
+  })).filter(m=>m.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+
+  const opsNoPeriodo = producao.filter(p=>dentroPeriodo(p.dataAprovacao, inicio, fim));
+  const consumoAgregado = agregarMateriais(opsNoPeriodo.flatMap(p=>p.pecas));
+
+  const todasPecasCriadas = criadosNoPeriodo.flatMap(o=>o.itens);
+  const qtdCortina = todasPecasCriadas.filter(p=>p.tipoPeca==='cortina').length;
+  const qtdPersiana = todasPecasCriadas.filter(p=>p.tipoPeca==='persiana').length;
+  const contagemAmbiente = {};
+  todasPecasCriadas.forEach(p=>{ contagemAmbiente[p.local] = (contagemAmbiente[p.local]||0)+1; });
+  const topAmbientes = Object.entries(contagemAmbiente).sort((a,b)=>b[1]-a[1]);
+
+  const corpo = `
+    <div class="ficha">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+        ${blocoLogoEmpresa(58)}
+        <div style="font-size:11px; color:#888; text-align:right;">Relatório gerencial<br>gerado em ${fmtDataAno(new Date())}</div>
+      </div>
+      <h1>Relatório do período</h1>
+      <div class="ficha-sub">De ${fmtDataAno(new Date(inicio+'T00:00:00'))} até ${fmtDataAno(new Date(fim+'T00:00:00'))}</div>
+
+      <h2>Resumo financeiro</h2>
+      <div class="ficha-grid">
+        <div><b>Faturamento no período</b>R$ ${fmt(faturamento)}</div>
+        <div><b>Orçamentos aprovados</b>${aprovadosNoPeriodo.length}</div>
+        <div><b>Ticket médio</b>R$ ${fmt(ticketMedio)}</div>
+        <div><b>Valor perdido (não fechado)</b>R$ ${fmt(valorPerdido)}</div>
+      </div>
+
+      <h2>Conversão</h2>
+      <div class="ficha-grid">
+        <div><b>Orçamentos criados</b>${criadosNoPeriodo.length}</div>
+        <div><b>Aprovados (dos criados)</b>${aprovadosDosCriados.length}</div>
+        <div><b>Taxa de conversão</b>${criadosNoPeriodo.length>0?fmt(taxaConversao)+'%':'—'}</div>
+        <div><b>Perdidos no período</b>${perdidosNoPeriodo.length}</div>
+      </div>
+
+      <h2>Motivos de perda</h2>
+      ${motivosAgrupados.length===0 ? `<div class="linha-check"><span></span><span>Nenhum orçamento perdido nesse período.</span></div>` :
+        motivosAgrupados.map(m=>`<div class="linha-check"><span class="caixa"></span><span>${m.label} — ${m.qtd}</span></div>`).join('')
+      }
+
+      <h2>Peças pedidas (orçamentos criados no período)</h2>
+      <div class="ficha-grid">
+        <div><b>Cortinas</b>${qtdCortina}</div>
+        <div><b>Persianas</b>${qtdPersiana}</div>
+      </div>
+      ${topAmbientes.length>0 ? topAmbientes.map(([local,qtd])=>`<div class="linha-check"><span class="caixa"></span><span>${local} — ${qtd}</span></div>`).join('') : ''}
+
+      <h2>Consumo de materiais (OPs geradas no período)</h2>
+      ${consumoAgregado.length===0 ? `<div class="linha-check"><span></span><span>Nenhuma OP gerada nesse período.</span></div>` :
+        consumoAgregado.map(m=>{
+          const it = mpItem(m.id);
+          return `<div class="linha-check"><span class="caixa"></span><span>${it?it.nome:m.id} — ${fmt(m.quantidade)} ${it?it.unidade:''}</span></div>`;
+        }).join('')
+      }
+
+      <h2>Todos os orçamentos criados no período (${criadosNoPeriodo.length})</h2>
+      <table class="tabela-pecas">
+        <thead><tr><th>Nº</th><th>Cliente</th><th>Status</th><th>Criado em</th><th>Valor</th></tr></thead>
+        <tbody>
+          ${criadosNoPeriodo.length===0 ? `<tr><td colspan="5" class="centro">Nenhum orçamento criado nesse período.</td></tr>` :
+            criadosNoPeriodo.map(o=>`<tr>
+              <td>${o.numero}</td>
+              <td>${o.cliente}</td>
+              <td>${o.status}</td>
+              <td>${fmtDataAno(o.dataCriacao)}</td>
+              <td>R$ ${fmt(o.total)}</td>
+            </tr>`).join('')
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  const janela = window.open('', '_blank');
+  if(!janela){
+    alert('O navegador bloqueou a janela de impressão. Permita pop-ups para esta página e toque em "Imprimir relatório" de novo.');
+    return;
+  }
+  janela.document.open();
+  janela.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+    <meta charset="UTF-8">
+    <title>Relatório ${inicio} a ${fim}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;}
+      body{font-family:'Inter',sans-serif; color:#111; margin:0; padding:28px; max-width:760px;}
+      .ficha h1{font-family:'Fraunces',serif; font-size:22px; margin:0 0 2px;}
+      .ficha .ficha-sub{font-size:12px; color:#555; margin-bottom:18px;}
+      .ficha .ficha-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 24px; margin-bottom:18px; font-size:13px;}
+      .ficha .ficha-grid b{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#555; font-weight:600; margin-bottom:2px;}
+      .ficha h2{font-size:13px; text-transform:uppercase; letter-spacing:.05em; border-bottom:1.5px solid #111; padding-bottom:4px; margin:20px 0 8px;}
+      .ficha .linha-check{display:flex; align-items:center; gap:10px; font-size:13.5px; padding:5px 0; border-bottom:1px dotted #ccc;}
+      .ficha .caixa{width:10px; height:10px; border-radius:50%; background:#111; flex-shrink:0;}
+      .tabela-pecas{width:100%; border-collapse:collapse; font-size:12px; margin-top:6px;}
+      .tabela-pecas th, .tabela-pecas td{border:1px solid #ccc; padding:5px 7px; text-align:left; vertical-align:middle;}
+      .tabela-pecas th{background:#f2f2f2; text-transform:uppercase; font-size:10px; letter-spacing:.04em; color:#444;}
+      .centro{text-align:center; color:#888;}
+      @media print{ @page{ margin:16mm; } }
+    </style>
+    </head>
+    <body>${corpo}</body>
+    </html>
+  `);
+  janela.document.close();
+  let jaImprimiu = false;
+  const dispararImpressao = () => {
+    if(jaImprimiu) return;
+    jaImprimiu = true;
+    janela.focus();
+    janela.print();
+  };
+  janela.onload = dispararImpressao;
+  setTimeout(dispararImpressao, 400);
 }
 
 function atualizarPeriodo(){
