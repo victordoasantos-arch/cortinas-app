@@ -86,6 +86,8 @@ function orcamentoDoBanco(row) {
     validadeDias: row.validade_dias,
     status: row.status,
     dataAprovacao: row.data_aprovacao ? new Date(row.data_aprovacao) : null,
+    motivoPerda: row.motivo_perda || null,
+    dataPerda: row.data_perda ? new Date(row.data_perda) : null,
   };
 }
 
@@ -122,6 +124,7 @@ export async function listarOrcamentos() {
   const { data, error } = await supabase
     .from('orcamentos')
     .select('*, pecas(*)')
+    .neq('status', 'excluido') // arquivados (soft delete) somem das listas, mas continuam no banco
     .order('numero', { ascending: false });
   if (error) throw error;
   return data.map(orcamentoDoBanco);
@@ -193,6 +196,34 @@ export async function idOrcamentoPorNumero(numero) {
   const { data, error } = await supabase.from('orcamentos').select('id').eq('numero', numero).single();
   if (error) throw error;
   return data.id;
+}
+
+// Marca como perdido (não fechou) com motivo fixo — MOTIVOS_PERDA no index.html.
+export async function marcarPerdidoNoBanco(orcamentoId, motivo) {
+  const { error } = await supabase
+    .from('orcamentos')
+    .update({ status: 'perdido', motivo_perda: motivo, data_perda: new Date().toISOString() })
+    .eq('id', orcamentoId);
+  if (error) throw error;
+}
+
+// Reabre um orçamento perdido, volta pra rascunho pra poder editar/aprovar de novo.
+export async function reabrirOrcamentoNoBanco(orcamentoId) {
+  const { error } = await supabase
+    .from('orcamentos')
+    .update({ status: 'rascunho', motivo_perda: null, data_perda: null })
+    .eq('id', orcamentoId);
+  if (error) throw error;
+}
+
+// "Excluir" = arquivar (soft delete). Sai de todas as listas (listarOrcamentos já filtra
+// status='excluido'), mas a linha continua no banco pra sempre — nunca é apagada de verdade.
+export async function arquivarOrcamentoNoBanco(orcamentoId) {
+  const { error } = await supabase
+    .from('orcamentos')
+    .update({ status: 'excluido', data_exclusao: new Date().toISOString() })
+    .eq('id', orcamentoId);
+  if (error) throw error;
 }
 
 // ---------------------------------------------------------------------------
