@@ -166,8 +166,10 @@
   .cal-dia{background:var(--branco); border:1.5px solid var(--linha); border-radius:9px; min-height:64px; padding:5px; font-size:10.5px; position:relative; overflow:hidden;}
   .cal-dia.fora{background:transparent; border-color:transparent;}
   .cal-dia.hoje{border-color:var(--indigo); border-width:2px;}
-  .cal-dia .num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:11px; color:var(--tinta2);}
-  .cal-dia.hoje .num{color:var(--indigo);}
+  .cal-dia .num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:var(--carvao);}
+  .cal-dia.fora .num{color:var(--tinta2); opacity:.5;}
+  .cal-dia.hoje .num{color:var(--indigo); font-weight:800;}
+  .cal-dia.hoje{background:#EFF3F2;}
   .cal-evento{margin-top:3px; border-radius:5px; padding:2px 5px; font-size:9.5px; font-weight:700; color:var(--linho); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default;}
   .cal-evento.mais{background:transparent; color:var(--tinta2); font-weight:600;}
   .legenda-cal{display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; font-size:11px; color:var(--tinta2);}
@@ -176,6 +178,7 @@
 
   @media (min-width:860px){
     .cal-dia{min-height:86px; padding:7px;}
+    .cal-dia .num{font-size:13px;}
     .cal-grid{gap:8px;}
   }
 
