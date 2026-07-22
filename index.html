@@ -813,33 +813,47 @@ function calcularEngineCortina(){
   });
 
   if(pecaForm.instalacao==='trilho'){
-    camadas.forEach(c=>{
-      const custoTrilho = largura*PRECO_TRILHO[pecaForm.varianteTrilho];
-      total += custoTrilho; addMP(MP_TRILHO[pecaForm.varianteTrilho], largura);
-      const presilhaTipo = PRESILHA_POR_TRILHO[pecaForm.varianteTrilho];
-      const qtdPresilhas = arredCima(larguraCm/50)+1;
-      const custoPresilhas = qtdPresilhas*PRECO_PRESILHA[presilhaTipo];
-      total += custoPresilhas; addMP('presilha', qtdPresilhas);
-      const qtdDeslizantes = arredCima(larguraCm/10);
-      const custoDeslizantes = qtdDeslizantes*0.20;
-      total += custoDeslizantes; addMP('deslizante', qtdDeslizantes);
-      const custoTerminais = 4*1.00; total += custoTerminais; addMP('terminal', 4);
-      const custoBuchas = qtdPresilhas*0.60, custoParafusos = qtdPresilhas*0.15;
-      total += custoBuchas+custoParafusos; addMP('bucha', qtdPresilhas); addMP('parafuso', qtdPresilhas);
+    const variante = pecaForm.varianteTrilho;
+    const nCamadas = camadas.length;
+    const combinado = nCamadas>1;
 
-      itens.push({ titulo:`${NOME_TRILHO[pecaForm.varianteTrilho]} — ${NOME_TECIDO[c]}`, classe:'instalacao',
-        valor: custoTrilho+custoPresilhas+custoDeslizantes+custoTerminais+custoBuchas+custoParafusos,
-        linhas:[
-          {desc:`Trilho: ${fmt(largura)} m × R$ ${fmt(PRECO_TRILHO[pecaForm.varianteTrilho])}/m`, valor:`R$ ${fmt(custoTrilho)}`},
-          {desc:`Presilha ${presilhaTipo}: (${larguraCm.toFixed(0)}cm÷50)+1 = ${qtdPresilhas} un`, valor:`R$ ${fmt(custoPresilhas)}`},
-          {desc:`Deslizante: ${larguraCm.toFixed(0)}cm÷10cm = ${qtdDeslizantes} un`, valor:`R$ ${fmt(custoDeslizantes)}`},
-          {desc:`Terminal: 4 un fixas`, valor:`R$ ${fmt(custoTerminais)}`},
-          {desc:`Bucha + parafuso: ${qtdPresilhas} un cada`, valor:`R$ ${fmt(custoBuchas+custoParafusos)}`},
-        ]});
+    // Trilho duplo/triplo com mais de uma camada (ex: cortina + blackout) é UM trilho só —
+    // as camadas compartilham o mesmo trilho, presilha, terminal, bucha e parafuso.
+    // Só o deslizante é por camada (cada camada desliza no seu próprio canal do trilho).
+    const custoTrilho = largura*PRECO_TRILHO[variante];
+    total += custoTrilho; addMP(MP_TRILHO[variante], largura);
+
+    const presilhaTipo = PRESILHA_POR_TRILHO[variante];
+    const qtdPresilhas = arredCima(larguraCm/50)+1;
+    const custoPresilhas = qtdPresilhas*PRECO_PRESILHA[presilhaTipo];
+    total += custoPresilhas; addMP('presilha', qtdPresilhas);
+
+    const qtdDeslizantesPorCamada = arredCima(larguraCm/10);
+    const qtdDeslizantes = qtdDeslizantesPorCamada*nCamadas;
+    const custoDeslizantes = qtdDeslizantes*0.20;
+    total += custoDeslizantes; addMP('deslizante', qtdDeslizantes);
+
+    const custoTerminais = 4*1.00; total += custoTerminais; addMP('terminal', 4);
+
+    const custoBuchas = qtdPresilhas*0.60, custoParafusos = qtdPresilhas*0.15;
+    total += custoBuchas+custoParafusos; addMP('bucha', qtdPresilhas); addMP('parafuso', qtdPresilhas);
+
+    itens.push({ titulo:`${NOME_TRILHO[variante]}${combinado?' (compartilhado entre as camadas)':''}`, classe:'instalacao',
+      valor: custoTrilho+custoPresilhas+custoDeslizantes+custoTerminais+custoBuchas+custoParafusos,
+      linhas:[
+        {desc:`Trilho: ${fmt(largura)} m × R$ ${fmt(PRECO_TRILHO[variante])}/m`, valor:`R$ ${fmt(custoTrilho)}`},
+        {desc:`Presilha ${presilhaTipo}: (${larguraCm.toFixed(0)}cm÷50)+1 = ${qtdPresilhas} un`, valor:`R$ ${fmt(custoPresilhas)}`},
+        {desc:`Deslizante${combinado?` (${nCamadas} camadas × ${qtdDeslizantesPorCamada})`:''}: ${qtdDeslizantes} un`, valor:`R$ ${fmt(custoDeslizantes)}`},
+        {desc:`Terminal: 4 un fixas`, valor:`R$ ${fmt(custoTerminais)}`},
+        {desc:`Bucha + parafuso: ${qtdPresilhas} un cada`, valor:`R$ ${fmt(custoBuchas+custoParafusos)}`},
+      ]});
+
+    camadas.forEach(c=>{
       const mo = largura*MO_POR_METRO[c]; total += mo;
       itens.push({ titulo:`Mão de obra — ${NOME_TECIDO[c]}`, classe:'maodeobra', valor:mo,
         linhas:[{desc:`${fmt(largura)} m × R$ ${fmt(MO_POR_METRO[c])}/m`, valor:`R$ ${fmt(mo)}`}] });
     });
+
     const moInstal = largura*45; total += moInstal;
     itens.push({ titulo:'Mão de obra — instalação do trilho', classe:'maodeobra', valor:moInstal,
       linhas:[{desc:`${fmt(largura)} m × R$ 45,00/m`, valor:`R$ ${fmt(moInstal)}`}] });
