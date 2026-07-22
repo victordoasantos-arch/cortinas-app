@@ -91,6 +91,7 @@ function orcamentoDoBanco(row) {
 
 function opDoBanco(row) {
   const pecas = (row.orcamentos?.pecas || []).map(pecaDoBanco);
+  const dataAprovacao = new Date(row.data_aprovacao);
   return {
     id: row.id,
     op: `OP-${row.numero}`,
@@ -100,9 +101,14 @@ function opDoBanco(row) {
     telefone: row.orcamentos?.cliente_telefone,
     cpf: row.orcamentos?.cliente_cpf || '—',
     cidade: row.orcamentos?.cliente_cidade || '—',
-    dataAprovacao: new Date(row.data_aprovacao),
+    dataAprovacao,
     pecas,
-    dataEntregaPrevista: new Date(row.data_entrega_prevista + 'T00:00:00'),
+    // Produção inteira (todas as peças da OP) acontece num único dia — o dia da aprovação.
+    dataProducao: dataAprovacao,
+    // Prazo máximo pra agendar a instalação: sempre aprovação + 30 dias corridos, fixo.
+    dataLimiteInstalacao: new Date(row.data_limite_instalacao + 'T00:00:00'),
+    // Agenda livre, manual — null até alguém marcar. É essa data que vira a "entrega" do pedido.
+    dataInstalacao: row.data_instalacao ? new Date(row.data_instalacao + 'T00:00:00') : null,
     status: row.status,
     baixaFeita: row.baixa_materiais_feita,
   };
@@ -146,11 +152,13 @@ export async function salvarOrcamento(clienteForm, itens) {
   return orcamento.numero;
 }
 
-// Aprova (registra sinal) e gera a OP — prazo fixo de 30 dias corridos da aprovação
+// Aprova (registra sinal) e gera a OP.
+// Produção inteira acontece em 1 dia (o dia da aprovação). A instalação é agendada
+// manualmente depois (agenda livre), com prazo máximo de 30 dias corridos da aprovação.
 export async function aprovarOrcamentoNoBanco(orcamentoId) {
   const agora = new Date();
-  const entrega = new Date(agora);
-  entrega.setDate(entrega.getDate() + 30);
+  const limite = new Date(agora);
+  limite.setDate(limite.getDate() + 30);
 
   const { data: orcamento, error: erroAprov } = await supabase
     .from('orcamentos')
@@ -164,9 +172,20 @@ export async function aprovarOrcamentoNoBanco(orcamentoId) {
     orcamento_id: orcamento.id,
     numero: orcamento.numero,
     data_aprovacao: agora.toISOString(),
-    data_entrega_prevista: entrega.toISOString().slice(0, 10),
+    data_limite_instalacao: limite.toISOString().slice(0, 10),
   });
   if (erroOP) throw erroOP;
+}
+
+// Agenda (ou reagenda) a data de instalação — agenda livre, manual, a qualquer momento.
+// dataISO no formato 'YYYY-MM-DD'. A validação de não passar do prazo máximo é feita na UI
+// antes de chamar isso; o banco também tem um CHECK de segurança (ver schema).
+export async function agendarInstalacaoNoBanco(opId, dataISO) {
+  const { error } = await supabase
+    .from('ordens_producao')
+    .update({ data_instalacao: dataISO })
+    .eq('id', opId);
+  if (error) throw error;
 }
 
 // Busca o id interno do orçamento a partir do número (a UI trabalha com número)
