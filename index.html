@@ -222,9 +222,13 @@
     .chip{min-width:130px;}
     body{padding-bottom:40px;}
   }
-  @media (min-width:1200px){
-    .wrap{max-width:1080px;}
-    .topo-inner{max-width:1080px;}
+  @media (min-width:1024px){
+    .wrap{max-width:1180px;}
+    .topo-inner{max-width:1180px;}
+    /* notebook: as 5 fases do kanban de produção cabem lado a lado, sem precisar rolar */
+    .kanban-scroll{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); overflow-x:visible; cursor:default; padding:4px 0 4px;}
+    .coluna-kb{flex:none; min-width:0;}
+    .card-kb .card-kb-cliente{font-size:14px;}
   }
 </style>
 </head>
