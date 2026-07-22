@@ -107,9 +107,67 @@
   .lista-item-topo .titulo{font-weight:700; font-size:14px; font-family:'Fraunces',serif;}
   .lista-item .meta{font-size:12px; color:var(--tinta2); font-family:'IBM Plex Mono',monospace;}
 
+  /* ---- Kanban visual, arrastável na horizontal ---- */
+  .filtro-kanban{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px;}
+  .filtro-kanban .campo-data{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--tinta2); font-family:'IBM Plex Mono',monospace;}
+  .filtro-kanban input[type=date]{border:1.5px solid var(--linha); border-radius:9px; padding:7px 9px; font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--branco); color:var(--carvao);}
+  .filtro-fase{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+  .filtro-fase button{border:1.5px solid var(--linha); background:var(--branco); border-radius:20px; padding:6px 13px; font-size:11.5px; font-weight:700; cursor:pointer; color:var(--tinta2); display:flex; align-items:center; gap:6px;}
+  .filtro-fase button .ponto{width:8px; height:8px;}
+  .filtro-fase button.ativo{background:var(--carvao); border-color:var(--carvao); color:var(--linho);}
+  .filtro-fase button.ativo .ponto{filter:brightness(1.6);}
+
+  .kanban-scroll{display:flex; gap:16px; margin-top:16px; overflow-x:auto; overflow-y:hidden; padding:4px 4px 18px; scroll-snap-type:x proximity; cursor:grab; user-select:none;}
+  .kanban-scroll.arrastando{cursor:grabbing;}
+  .kanban-scroll::-webkit-scrollbar{height:9px;}
+  .kanban-scroll::-webkit-scrollbar-track{background:var(--linho2); border-radius:6px;}
+  .kanban-scroll::-webkit-scrollbar-thumb{background:var(--latao); border-radius:6px;}
+
+  .coluna-kb{flex:0 0 300px; scroll-snap-align:start; display:flex; flex-direction:column;}
+  .coluna-kb-head{border-radius:14px 14px 0 0; padding:14px 16px; color:var(--linho);}
+  .coluna-kb-head .titulo-fase{font-family:'Fraunces',serif; font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px;}
+  .coluna-kb-head .contagem{font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; margin-top:2px;}
+  .coluna-kb-corpo{background:var(--linho2); border:1.5px solid var(--linha); border-top:none; border-radius:0 0 14px 14px; padding:10px; min-height:120px; flex:1; display:flex; flex-direction:column; gap:10px;}
+
+  .card-kb{background:var(--branco); border:1.5px solid var(--linha); border-left:6px solid var(--indigo); border-radius:12px; padding:13px 14px; box-shadow:0 1px 2px rgba(42,36,28,.05);}
+  .card-kb .card-kb-num{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--tinta2); text-transform:uppercase; letter-spacing:.04em;}
+  .card-kb .card-kb-cliente{font-family:'Fraunces',serif; font-weight:600; font-size:15px; margin:2px 0 8px;}
+  .card-kb .card-kb-linha{display:flex; justify-content:space-between; gap:8px; font-size:11.5px; color:var(--tinta2); padding:3px 0; font-family:'IBM Plex Mono',monospace;}
+  .card-kb .card-kb-linha b{color:var(--carvao); font-family:'Inter',sans-serif; font-weight:600;}
+  .card-kb .card-kb-urgencia{display:inline-block; margin-top:8px; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px;}
+  .kanban-vazia{padding:22px 10px; text-align:center; font-size:12px; color:var(--tinta2);}
+
+  @media (min-width:860px){
+    .kanban-scroll{padding-bottom:22px;}
+    .coluna-kb{flex-basis:320px;}
+  }
+
+  /* ---- Calendário mensal (Produção e Instalação) ---- */
+  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin:14px 0 10px;}
+  .cal-nav .mes-label{font-family:'Fraunces',serif; font-weight:600; font-size:15px; text-transform:capitalize;}
+  .cal-nav button{background:var(--linho2); border:1.5px solid var(--linha); border-radius:9px; width:34px; height:34px; font-size:15px; font-weight:700; color:var(--indigo); cursor:pointer;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .cal-dow{font-size:10px; text-align:center; color:var(--tinta2); font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding-bottom:4px;}
+  .cal-dia{background:var(--branco); border:1.5px solid var(--linha); border-radius:9px; min-height:64px; padding:5px; font-size:10.5px; position:relative; overflow:hidden;}
+  .cal-dia.fora{background:transparent; border-color:transparent;}
+  .cal-dia.hoje{border-color:var(--indigo); border-width:2px;}
+  .cal-dia .num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:11px; color:var(--tinta2);}
+  .cal-dia.hoje .num{color:var(--indigo);}
+  .cal-evento{margin-top:3px; border-radius:5px; padding:2px 5px; font-size:9.5px; font-weight:700; color:var(--linho); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default;}
+  .cal-evento.mais{background:transparent; color:var(--tinta2); font-weight:600;}
+  .legenda-cal{display:flex; flex-wrap:wrap; gap:14px; margin-top:14px; font-size:11px; color:var(--tinta2);}
+  .legenda-cal span{display:inline-flex; align-items:center; gap:6px;}
+  .legenda-cal .ponto{width:9px; height:9px; border-radius:3px; display:inline-block;}
+
+  @media (min-width:860px){
+    .cal-dia{min-height:86px; padding:7px;}
+    .cal-grid{gap:8px;}
+  }
+
   .kanban{display:flex; flex-direction:column; gap:22px; margin-top:14px;}
   .coluna h3{font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; font-weight:700; display:flex; align-items:center; gap:6px; margin:0 0 8px;}
   .ponto{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
 
   .vazio{text-align:center; padding:30px 16px; color:var(--tinta2); font-size:13px;}
 
@@ -211,7 +269,7 @@ function blocoLogoEmpresa(tamanho){
 let telaAtual = 'inicio';
 let seqOrcamento = 3000;
 let orcamentos = [];   // {numero, cliente, telefone, cpf, cidade, itens:[peça], total, status, dataAprovacao}
-let producao = [];     // {op, orcamentoNumero, cliente, telefone, cpf, cidade, pecas:[peça], materiaisMP (agregado), etapas, dataEntregaPrevista, status, baixaFeita}
+let producao = [];     // {op, orcamentoNumero, cliente, telefone, cpf, cidade, pecas:[peça], materiaisMP (agregado), dataProducao, dataLimiteInstalacao, dataInstalacao, status, baixaFeita}
 
 // dados do cliente — persistem enquanto o orçamento (com várias peças) está sendo montado
 let clienteForm = { nome:'', telefone:'', cpf:'', cidade:'', validadeDias:15 };
@@ -255,6 +313,10 @@ function fmt(v){ return (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2,
 function arredCima(v){ return Math.ceil(v - 1e-9); }
 function fmtData(d){ return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}); }
 function fmtDataAno(d){ return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'}); }
+// chave de data no fuso LOCAL (YYYY-MM-DD) — usar sempre pra agrupar/comparar dias em
+// calendários e filtros. toISOString() converte pra UTC e pode "virar o dia" errado
+// quando a data tem horário (ex: dataAprovacao), então evitamos isso aqui.
+function chaveDia(d){ const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; }
 function mpItem(id){ return estoqueMP.find(i=>i.id===id); }
 
 function nomeInstalacaoLabel(peca){
@@ -358,7 +420,7 @@ function renderInicio(){
               <span class="titulo">${p.op} — ${p.cliente}</span>
               <span class="badge ${p.status}">${STATUS_PRODUCAO.find(s=>s.chave===p.status).label}</span>
             </div>
-            <div class="meta">${p.pecas.length} peça${p.pecas.length>1?'s':''} · entrega prevista ${fmtData(p.dataEntregaPrevista)}</div>
+            <div class="meta">${p.pecas.length} peça${p.pecas.length>1?'s':''} · ${p.dataInstalacao?`instalação ${fmtData(p.dataInstalacao)}`:`prazo máximo p/ instalar ${fmtData(p.dataLimiteInstalacao)}`}</div>
           </div>`).join('') + `<button class="btn-secundario" onclick="tela('producao')">Ver produção completa (kanban) →</button>`
       }
     </div>
@@ -374,11 +436,13 @@ function renderInicio(){
   `;
 }
 
-// ---- Cronograma de entregas: todas as OPs não entregues, ordenadas por data, cor por urgência ----
+// ---- Cronograma de entregas: todas as OPs não entregues, ordenadas pela data que importa
+// (instalação já agendada, ou o prazo máximo pra quem ainda não agendou) ----
 function renderCronogramaEntregas(emAndamento){
   if(emAndamento.length===0) return '';
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const ordenado = emAndamento.slice().sort((a,b)=>a.dataEntregaPrevista - b.dataEntregaPrevista);
+  const comDataRef = emAndamento.map(p=>({ p, dataRef: p.dataInstalacao || p.dataLimiteInstalacao }));
+  const ordenado = comDataRef.slice().sort((a,b)=>a.dataRef - b.dataRef);
 
   function urgencia(dias){
     if(dias<=5) return {classe:'critico', cor:'var(--vinho)', label:`${dias}d`};
@@ -389,21 +453,21 @@ function renderCronogramaEntregas(emAndamento){
   return `
     <div class="cartao">
       <h2>Cronograma de entregas</h2>
-      <p class="sub">Ordenado pela data mais próxima. Cor = dias restantes até a entrega prevista (sempre 30 dias corridos da aprovação).</p>
-      ${ordenado.map(p=>{
-        const dias = Math.round((p.dataEntregaPrevista - hoje)/86400000);
+      <p class="sub">Ordenado pela data mais próxima. Quando a instalação já foi agendada, usa essa data; senão usa o prazo máximo (30 dias corridos da aprovação).</p>
+      ${ordenado.map(({p, dataRef})=>{
+        const dias = Math.round((dataRef - hoje)/86400000);
         const u = urgencia(dias);
         return `<div class="item-card ${u.classe}">
           <div class="item-titulo">
-            <span>${fmtData(p.dataEntregaPrevista)} — ${p.cliente} (${p.op})</span>
+            <span>${fmtData(dataRef)}${p.dataInstalacao?' (instalação)':' (prazo máximo)'} — ${p.cliente} (${p.op})</span>
             <span class="valor" style="color:${u.cor};">${dias<0?'ATRASADO':u.label}</span>
           </div>
           <div class="linha-conta"><span class="desc">${p.pecas.map(pc=>pc.local).join(', ')}</span><span>${STATUS_PRODUCAO.find(s=>s.chave===p.status).label}</span></div>
         </div>`;
       }).join('')}
       <div class="como-ler" style="margin-top:14px;">
-        <b>Como ler:</b> vermelho = 5 dias ou menos até a entrega, âmbar = até 15 dias, verde = mais de 15 dias.
-        "ATRASADO" aparece se a data prevista já passou e o pedido ainda não foi marcado como entregue.
+        <b>Como ler:</b> vermelho = 5 dias ou menos, âmbar = até 15 dias, verde = mais de 15 dias.
+        "ATRASADO" aparece se a data já passou (instalação agendada ou prazo máximo) e o pedido ainda não foi marcado como instalado/entregue.
       </div>
     </div>
   `;
@@ -957,69 +1021,187 @@ async function aprovarOrcamento(numero){
 }
 
 // =========================================================
-// ETAPAS DA OP — só cálculo local, derivado da data de aprovação
-// (não fica salvo no banco porque é 100% determinístico a partir dela)
-// datas ESTIMADAS por etapa, distribuídas dentro dos 30 dias corridos fixos.
-// Não é capacidade real (isso ainda é pendência do projeto) — é só uma divisão
-// proporcional pra existir uma agenda dia a dia. A entrega em si continua fixa
-// em +30 dias, sempre.
+// REGRA DE PRAZO (atualizada): a produção de TODAS as peças de uma OP
+// acontece num único dia — o dia da aprovação (dataAprovacao/dataProducao já
+// vêm prontos do banco, ver opDoBanco() no db.js). A instalação é agendada
+// manualmente, agenda livre, com prazo máximo de 30 dias corridos da
+// aprovação (dataLimiteInstalacao). A "entrega" do pedido passa a ser a
+// própria data de instalação (dataInstalacao), não mais um número fixo de dias.
 // =========================================================
-function calcularEtapas(dataAprovacao){
-  const inicio = new Date(dataAprovacao);
-  const somaDias = d => { const x = new Date(inicio); x.setDate(x.getDate()+d); return x; };
-  return [
-    { nome:'Corte e costura do tecido (todas as peças)', data: somaDias(7) },
-    { nome:'Preparação da estrutura e acessórios (todas as peças)', data: somaDias(15) },
-    { nome:'Controle de qualidade', data: somaDias(22) },
-    { nome:'Instalação no cliente', data: somaDias(30) },
-  ];
+
+// =========================================================
+// FASES DE NEGÓCIO — do orçamento até entregue (kanban unificado)
+// Só fases de negócio, sem detalhar etapas internas de produção.
+// =========================================================
+const FASES_NEGOCIO = [
+  { chave:'rascunho',     label:'Orçamento',            cor:'#8A7B5E' },
+  { chave:'aguardando',   label:'Aguardando início',    cor:'var(--vinho)' },
+  { chave:'em_producao',  label:'Em produção',          cor:'var(--latao)' },
+  { chave:'pronto',       label:'Pronto p/ instalar',   cor:'var(--indigo)' },
+  { chave:'entregue',     label:'Instalado / entregue', cor:'var(--musgo)' },
+];
+function faseInfo(chave){ return FASES_NEGOCIO.find(f=>f.chave===chave) || FASES_NEGOCIO[0]; }
+
+// estado do filtro do kanban / calendários — compartilhado entre as telas
+let filtroNegocio = {
+  fases: new Set(FASES_NEGOCIO.map(f=>f.chave)),
+  inicio: '', // '' = sem filtro de data
+  fim: '',
+};
+
+// ---- monta a lista unificada orçamento(rascunho) + OPs, no formato do card ----
+function listaNegocioUnificada(){
+  const doRascunho = orcamentos.filter(o=>o.status==='rascunho').map(o=>({
+    tipo:'orcamento', numero:o.numero, cliente:o.cliente, pecas:o.itens,
+    fase:'rascunho', dataChave: o.dataCriacao, ref:o,
+  }));
+  const daProducao = producao.map(p=>({
+    tipo:'op', numero:p.orcamentoNumero, op:p.op, cliente:p.cliente, pecas:p.pecas,
+    fase:p.status, dataChave: p.dataInstalacao || p.dataLimiteInstalacao, ref:p,
+  }));
+  return [...doRascunho, ...daProducao];
+}
+
+function passaNoFiltro(item){
+  if(!filtroNegocio.fases.has(item.fase)) return false;
+  if(filtroNegocio.inicio || filtroNegocio.fim){
+    const chave = item.dataChave ? chaveDia(item.dataChave) : null;
+    if(!chave) return false;
+    if(filtroNegocio.inicio && chave < filtroNegocio.inicio) return false;
+    if(filtroNegocio.fim && chave > filtroNegocio.fim) return false;
+  }
+  return true;
 }
 
 // =========================================================
-// TELA: PRODUÇÃO (kanban por status)
+// TELA: PRODUÇÃO (kanban visual, arrastável na horizontal)
 // =========================================================
-const STATUS_PRODUCAO = [
-  { chave:'aguardando', label:'Aguardando início', cor:'var(--vinho)' },
-  { chave:'em_producao', label:'Em produção', cor:'var(--latao)' },
-  { chave:'pronto', label:'Pronto / a entregar', cor:'var(--musgo)' },
-  { chave:'entregue', label:'Entregue', cor:'var(--tinta2)' },
-];
+const STATUS_PRODUCAO = FASES_NEGOCIO.filter(f=>f.chave!=='rascunho');
 const PROXIMO_STATUS = { aguardando:'em_producao', em_producao:'pronto', pronto:'entregue' };
-const LABEL_AVANCO = { aguardando:'Iniciar produção', em_producao:'Marcar como pronto', pronto:'Marcar como entregue' };
+const LABEL_AVANCO = { aguardando:'Iniciar produção', em_producao:'Marcar como pronto', pronto:'Marcar como instalado/entregue' };
+
+function toggleFaseFiltro(chave){
+  if(filtroNegocio.fases.has(chave)) filtroNegocio.fases.delete(chave);
+  else filtroNegocio.fases.add(chave);
+  tela(telaAtual, true);
+}
+function limparFiltroData(){ filtroNegocio.inicio=''; filtroNegocio.fim=''; tela(telaAtual, true); }
+function aplicarFiltroData(campo, valor){ filtroNegocio[campo] = valor; tela(telaAtual, true); }
+
+function barraFiltro(){
+  return `
+    <div class="filtro-kanban">
+      <div class="campo-data">De <input type="date" value="${filtroNegocio.inicio}" onchange="aplicarFiltroData('inicio', this.value)"></div>
+      <div class="campo-data">até <input type="date" value="${filtroNegocio.fim}" onchange="aplicarFiltroData('fim', this.value)"></div>
+      ${(filtroNegocio.inicio||filtroNegocio.fim) ? `<button class="btn-mini" onclick="limparFiltroData()">Limpar data</button>` : ''}
+    </div>
+    <div class="filtro-fase">
+      ${FASES_NEGOCIO.map(f=>`
+        <button class="${filtroNegocio.fases.has(f.chave)?'ativo':''}" onclick="toggleFaseFiltro('${f.chave}')">
+          <span class="ponto" style="background:${f.cor};"></span>${f.label}
+        </button>`).join('')}
+    </div>
+  `;
+}
+
+function urgenciaInstalacao(p){
+  if(p.dataInstalacao) return { label:'instalação agendada', cor:'var(--musgo)', bg:'#E1EFE3' };
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const dias = Math.round((p.dataLimiteInstalacao - hoje)/86400000);
+  if(dias<0) return { label:'prazo estourado', cor:'var(--vinho)', bg:'#F7DEDE' };
+  if(dias<=5) return { label:`${dias}d p/ o prazo`, cor:'var(--vinho)', bg:'#F7DEDE' };
+  if(dias<=15) return { label:`${dias}d p/ o prazo`, cor:'var(--latao)', bg:'#F5E4D6' };
+  return { label:`${dias}d p/ o prazo`, cor:'var(--musgo)', bg:'#E1EFE3' };
+}
 
 function renderProducao(){
-  if(producao.length===0){
-    return `<div class="cartao"><div class="vazio">Nenhuma ordem de produção ainda.<br>Aprove um orçamento pra gerar a primeira.</div></div>`;
-  }
-  return `<div class="kanban">
-    ${STATUS_PRODUCAO.map(s=>{
-      const itensColuna = producao.filter(p=>p.status===s.chave);
-      if(itensColuna.length===0) return '';
-      return `<div class="coluna">
-        <h3><span class="ponto" style="background:${s.cor};"></span>${s.label} (${itensColuna.length})</h3>
-        ${itensColuna.map(p=>renderCardOP(p)).join('')}
-      </div>`;
-    }).join('')}
-  </div>`;
+  const itens = listaNegocioUnificada().filter(passaNoFiltro);
+  return `
+    <div class="cartao">
+      <h2>Fluxo do negócio</h2>
+      <p class="sub">Do orçamento até instalado/entregue. Arraste o quadro pro lado pra ver todas as fases. Filtre por data ou por fase abaixo.</p>
+      ${barraFiltro()}
+    </div>
+    <div class="kanban-scroll" id="kanbanScroll">
+      ${FASES_NEGOCIO.map(f=>{
+        const doColuna = itens.filter(i=>i.fase===f.chave);
+        return `<div class="coluna-kb">
+          <div class="coluna-kb-head" style="background:${f.cor};">
+            <div class="titulo-fase">${f.label}</div>
+            <div class="contagem">${doColuna.length}</div>
+          </div>
+          <div class="coluna-kb-corpo">
+            ${doColuna.length===0 ? `<div class="kanban-vazia">Nada aqui.</div>` : doColuna.map(i=>renderCardKanban(i, f.cor)).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
+
+function renderCardKanban(item, corFase){
+  if(item.tipo==='orcamento'){
+    const o = item.ref;
+    return `
+      <div class="card-kb" style="border-left-color:${corFase};" onclick="tela('orcamentos')">
+        <div class="card-kb-num">Nº ${o.numero}</div>
+        <div class="card-kb-cliente">${o.cliente}</div>
+        <div class="card-kb-linha"><span>Peças</span><b>${o.itens.length}</b></div>
+        <div class="card-kb-linha"><span>Total</span><b>R$ ${fmt(o.total)}</b></div>
+      </div>`;
+  }
+  const p = item.ref;
+  const u = urgenciaInstalacao(p);
+  return `
+    <div class="card-kb" style="border-left-color:${corFase};" onclick="tela('producao')">
+      <div class="card-kb-num">${p.op} · pedido nº ${p.orcamentoNumero}</div>
+      <div class="card-kb-cliente">${p.cliente}</div>
+      <div class="card-kb-linha"><span>Peças</span><b>${p.pecas.length}</b></div>
+      <div class="card-kb-linha"><span>Produção (1 dia)</span><b>${fmtData(p.dataProducao)}</b></div>
+      <div class="card-kb-linha"><span>${p.dataInstalacao?'Instalação':'Prazo máximo'}</span><b>${fmtData(p.dataInstalacao||p.dataLimiteInstalacao)}</b></div>
+      <span class="card-kb-urgencia" style="color:${u.cor}; background:${u.bg};">${u.label}</span>
+    </div>`;
+}
+
+// arrastar o kanban com o mouse (touch já rola nativamente)
+document.addEventListener('mousedown', e=>{
+  const wrap = e.target.closest && e.target.closest('#kanbanScroll');
+  if(!wrap) return;
+  let startX = e.pageX, scrollStart = wrap.scrollLeft;
+  wrap.classList.add('arrastando');
+  function mover(ev){ wrap.scrollLeft = scrollStart - (ev.pageX - startX); }
+  function soltar(){ wrap.classList.remove('arrastando'); document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); }
+  document.addEventListener('mousemove', mover);
+  document.addEventListener('mouseup', soltar);
+});
 
 function renderCardOP(p){
   const faltamMateriais = p.materiaisMP.some(m=>{ const it = mpItem(m.id); return it && it.saldo < m.quantidade; });
+  const u = urgenciaInstalacao(p);
   return `
     <div class="lista-item">
       <div class="lista-item-topo">
         <span class="titulo">${p.op} — ${p.cliente}</span>
         <span class="badge ${p.status}">${STATUS_PRODUCAO.find(s=>s.chave===p.status).label}</span>
       </div>
-      <div class="meta">pedido nº ${p.orcamentoNumero} · entrega prevista ${fmtData(p.dataEntregaPrevista)} (30 dias corridos)</div>
+      <div class="meta">pedido nº ${p.orcamentoNumero} · produção (1 dia) ${fmtData(p.dataProducao)}</div>
 
       <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--linha);">
         <div style="font-size:11.5px; font-weight:700; color:var(--tinta2); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">Peças (${p.pecas.length})</div>
         ${p.pecas.map((peca,i)=>`<div class="linha-conta"><span class="desc">${i+1}. ${peca.local}</span><span>${descricaoPeca(peca)}</span></div>`).join('')}
       </div>
 
-      <div style="margin-top:10px;">
-        ${p.etapas.map(e=>`<div class="linha-conta"><span class="desc">☐ ${e.nome}</span><span></span></div>`).join('')}
+      <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--linha);">
+        <div style="font-size:11.5px; font-weight:700; color:var(--tinta2); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">Instalação</div>
+        ${p.dataInstalacao
+          ? `<div class="linha-conta"><span class="desc">Agendada para</span><span><b>${fmtData(p.dataInstalacao)}</b></span></div>
+             <button class="btn-mini" style="margin-top:6px;" onclick="prepararReagendar('${p.op}')">Reagendar</button>`
+          : `<div class="linha-conta"><span class="desc" style="color:${u.cor};">Ainda não agendada — prazo máximo ${fmtData(p.dataLimiteInstalacao)}</span><span style="color:${u.cor}; font-weight:700;">${u.label}</span></div>
+             <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+               <input type="date" id="dataInst-${p.op}" max="${chaveDia(p.dataLimiteInstalacao)}" style="border:1.5px solid var(--linha); border-radius:9px; padding:8px 10px; font-family:'IBM Plex Mono',monospace; font-size:12px;">
+               <button class="btn-mini" style="background:var(--indigo); color:var(--linho); border-color:var(--indigo);" onclick="agendarInstalacao('${p.op}')">Agendar instalação</button>
+             </div>`
+        }
       </div>
 
       <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--linha);">
@@ -1041,6 +1223,31 @@ function renderCardOP(p){
       </div>
     </div>
   `;
+}
+
+function prepararReagendar(op){
+  const p = producao.find(x=>x.op===op);
+  if(!p) return;
+  p.dataInstalacao = null; // só localmente, até confirmar uma nova data — não grava até "Agendar instalação"
+  tela('producao', true);
+}
+
+async function agendarInstalacao(op){
+  const p = producao.find(x=>x.op===op);
+  if(!p) return;
+  const input = document.getElementById(`dataInst-${op}`);
+  const valor = input ? input.value : '';
+  if(!valor){ alert('Escolha uma data de instalação.'); return; }
+  if(valor > chaveDia(p.dataLimiteInstalacao)){
+    alert('Essa data passa do prazo máximo de 30 dias corridos da aprovação.'); return;
+  }
+  try{
+    await window.__db.agendarInstalacaoNoBanco(p.id, valor);
+    await carregarDados();
+    tela('producao');
+  }catch(e){
+    alert('Erro ao agendar instalação: '+e.message);
+  }
 }
 
 async function darBaixaMateriais(op){
@@ -1083,7 +1290,7 @@ function imprimirFicha(op){
         <div style="font-size:11px; color:#888; text-align:right;">Documento interno de produção<br>sem valores</div>
       </div>
       <h1>Ordem de Produção ${p.op}</h1>
-      <div class="ficha-sub">Aprovado em ${fmtData(new Date(p.dataAprovacao))} · entrega prevista ${fmtData(p.dataEntregaPrevista)} (30 dias corridos)</div>
+      <div class="ficha-sub">Aprovado/produção em ${fmtData(new Date(p.dataAprovacao))} (1 dia) · ${p.dataInstalacao?`instalação agendada ${fmtData(p.dataInstalacao)}`:`prazo máximo p/ instalar ${fmtData(p.dataLimiteInstalacao)}`}</div>
 
       <div class="ficha-grid">
         <div><b>Número do pedido</b>${p.orcamentoNumero}</div>
@@ -1113,8 +1320,9 @@ function imprimirFicha(op){
         return `<div class="linha-check"><span class="caixa"></span><span>${it?it.nome:m.id} — ${fmt(m.quantidade)} ${it?it.unidade:''}</span></div>`;
       }).join('')}
 
-      <h2>Etapas de produção</h2>
-      ${p.etapas.map(e=>`<div class="linha-check"><span class="caixa"></span><span>${e.nome}</span></div>`).join('')}
+      <h2>Produção e instalação</h2>
+      <div class="linha-check"><span class="caixa"></span><span>Produção (corte, costura e montagem — todas as peças): ${fmtData(p.dataProducao)}</span></div>
+      <div class="linha-check"><span class="caixa"></span><span>${p.dataInstalacao ? `Instalação agendada: ${fmtData(p.dataInstalacao)}` : `Instalação: a agendar (prazo máximo ${fmtData(p.dataLimiteInstalacao)})`}</span></div>
 
       <div class="assinaturas">
         <div>Responsável pela separação</div>
@@ -1274,55 +1482,112 @@ function imprimirOrcamentoCliente(numero){
 }
 
 // =========================================================
-// TELA: PROGRAMAÇÃO (calendário dia a dia — o que fazer em cada data)
+// TELA: PROGRAMAÇÃO — dois calendários mensais separados:
+// produção (1 dia, todas as peças da OP) e instalação (agenda livre, manual).
+// Filtro por fase reaproveita o mesmo estado do kanban (filtroNegocio.fases).
 // =========================================================
-function renderProgramacao(){
-  const ativos = producao.filter(p=>p.status!=='entregue');
-  if(ativos.length===0){
-    return `<div class="cartao"><div class="vazio">Nenhuma ordem de produção em andamento.<br>A agenda aparece aqui assim que um orçamento for aprovado.</div></div>`;
-  }
+let calMesProducao = primeiroDiaMes(new Date());
+let calMesInstalacao = primeiroDiaMes(new Date());
+function primeiroDiaMes(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
 
-  // monta uma lista plana de eventos (etapa + entrega) com data, depois agrupa por dia
-  const eventos = [];
-  ativos.forEach(p=>{
-    p.etapas.forEach(e=> eventos.push({ data:e.data, op:p.op, cliente:p.cliente, texto:e.nome, tipo:'etapa' }));
-    eventos.push({ data:p.dataEntregaPrevista, op:p.op, cliente:p.cliente, texto:'Entrega ao cliente', tipo:'entrega' });
-  });
+function mudarMesProducao(delta){ calMesProducao = new Date(calMesProducao.getFullYear(), calMesProducao.getMonth()+delta, 1); tela('programacao'); }
+function mudarMesInstalacao(delta){ calMesInstalacao = new Date(calMesInstalacao.getFullYear(), calMesInstalacao.getMonth()+delta, 1); tela('programacao'); }
 
-  const porDia = {};
-  eventos.forEach(ev=>{
-    const chave = ev.data.toISOString().slice(0,10);
-    if(!porDia[chave]) porDia[chave] = [];
-    porDia[chave].push(ev);
-  });
-  const diasOrdenados = Object.keys(porDia).sort();
+function gerarGradeMes(dataMes){
+  const ano = dataMes.getFullYear(), mes = dataMes.getMonth();
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia = new Date(ano, mes+1, 0);
+  const dias = [];
+  for(let i=0;i<primeiroDia.getDay();i++) dias.push(null);
+  for(let d=1; d<=ultimoDia.getDate(); d++) dias.push(new Date(ano, mes, d));
+  return dias;
+}
+
+function renderCalendarioMes(dataMes, eventosPorDia, onPrev, onNext, corPadrao){
+  const dias = gerarGradeMes(dataMes);
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const hojeChave = hoje.toISOString().slice(0,10);
+  const hojeChave = chaveDia(hoje);
+  const DOW = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  const max = 3;
+  return `
+    <div class="cal-nav">
+      <button onclick="${onPrev}">‹</button>
+      <div class="mes-label">${dataMes.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
+      <button onclick="${onNext}">›</button>
+    </div>
+    <div class="cal-grid">
+      ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      ${dias.map(d=>{
+        if(!d) return `<div class="cal-dia fora"></div>`;
+        const chave = chaveDia(d);
+        const evs = eventosPorDia[chave] || [];
+        return `<div class="cal-dia ${chave===hojeChave?'hoje':''}">
+          <div class="num">${d.getDate()}</div>
+          ${evs.slice(0,max).map(e=>`<div class="cal-evento" style="background:${e.cor||corPadrao};" title="${e.titulo}">${e.titulo}</div>`).join('')}
+          ${evs.length>max ? `<div class="cal-evento mais">+${evs.length-max}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderProgramacao(){
+  const ativos = producao.filter(p=>filtroNegocio.fases.has(p.status));
+
+  const evProducao = {};
+  ativos.forEach(p=>{
+    const chave = chaveDia(p.dataProducao);
+    (evProducao[chave] = evProducao[chave]||[]).push({ titulo:`${p.op} — ${p.cliente}`, cor: faseInfo(p.status).cor });
+  });
+
+  const evInstalacao = {};
+  const naoAgendadas = [];
+  ativos.forEach(p=>{
+    if(p.dataInstalacao){
+      const chave = chaveDia(p.dataInstalacao);
+      (evInstalacao[chave] = evInstalacao[chave]||[]).push({ titulo:`${p.op} — ${p.cliente}`, cor:'var(--latao)' });
+    } else if(p.status!=='entregue'){
+      naoAgendadas.push(p);
+    }
+  });
 
   return `
     <div class="cartao">
-      <h2>Programação — agenda dia a dia</h2>
+      <h2>Programação</h2>
       <p class="sub">
-        Datas <b>estimadas</b>: dividem os 30 dias de prazo em 4 marcos (corte/costura, estrutura,
-        qualidade, entrega). Não reflete capacidade real de produção por dia — isso ainda é uma
-        pendência do projeto (quantas peças cabem por dia). Só dias com algo agendado aparecem.
+        Dois calendários separados: quando cada pedido é <b>produzido</b> (1 dia só, todas as peças
+        juntas) e quando é <b>instalado</b> na casa do cliente (agenda livre, dentro do prazo máximo
+        de 30 dias corridos da aprovação). O filtro de fase abaixo vale pros dois calendários.
       </p>
+      <div class="filtro-fase">
+        ${STATUS_PRODUCAO.map(f=>`
+          <button class="${filtroNegocio.fases.has(f.chave)?'ativo':''}" onclick="toggleFaseFiltro('${f.chave}')">
+            <span class="ponto" style="background:${f.cor};"></span>${f.label}
+          </button>`).join('')}
+      </div>
     </div>
-    ${diasOrdenados.map(chave=>{
-      const data = new Date(chave+'T00:00:00');
-      const eh_hoje = chave===hojeChave;
-      const atrasado = chave < hojeChave;
-      return `
-        <div class="cartao" style="${eh_hoje?'border-color:var(--indigo); border-width:2px;':''}">
-          <h2 style="font-size:14px; ${atrasado?'color:var(--vinho);':''}">
-            ${fmtData(data)}${eh_hoje?' — hoje':''}${atrasado?' — atrasado':''}
-          </h2>
-          ${porDia[chave].map(ev=>`
-            <div class="linha-conta" style="padding:6px 0;">
-              <span class="desc">${ev.tipo==='entrega'?'🚚 ':'☐ '}${ev.op} — ${ev.cliente}: ${ev.texto}</span>
-            </div>`).join('')}
-        </div>`;
-    }).join('')}
+
+    <div class="cartao">
+      <h2>Calendário de produção</h2>
+      <p class="sub">Cada pedido aparece só no dia em que toda a produção dele acontece.</p>
+      ${renderCalendarioMes(calMesProducao, evProducao, "mudarMesProducao(-1)", "mudarMesProducao(1)", 'var(--indigo)')}
+    </div>
+
+    <div class="cartao">
+      <h2>Calendário de instalação</h2>
+      <p class="sub">Só aparece aqui quem já tem instalação agendada — agende na tela de Produção.</p>
+      ${renderCalendarioMes(calMesInstalacao, evInstalacao, "mudarMesInstalacao(-1)", "mudarMesInstalacao(1)", 'var(--latao)')}
+    </div>
+
+    ${naoAgendadas.length>0 ? `
+    <div class="cartao">
+      <h2>Aguardando agendamento (${naoAgendadas.length})</h2>
+      <p class="sub">Pedidos com produção feita (ou em andamento) mas sem data de instalação marcada ainda.</p>
+      ${naoAgendadas.slice().sort((a,b)=>a.dataLimiteInstalacao-b.dataLimiteInstalacao).map(p=>{
+        const u = urgenciaInstalacao(p);
+        return `<div class="linha-conta" style="padding:6px 0;"><span class="desc">${p.op} — ${p.cliente} · prazo máximo ${fmtData(p.dataLimiteInstalacao)}</span><span style="color:${u.cor}; font-weight:700;">${u.label}</span></div>`;
+      }).join('')}
+    </div>` : ''}
   `;
 }
 
@@ -1579,7 +1844,7 @@ async function carregarDados(){
   orcamentos = listaOrcamentos.map(o => ({ ...o, dataValidade: calcularDataValidade(o.dataCriacao, o.validadeDias) }));
   seqOrcamento = orcamentos.length ? Math.max(...orcamentos.map(o=>o.numero)) + 1 : 3000;
 
-  producao = listaProducao.map(p => ({ ...p, etapas: calcularEtapas(p.dataAprovacao), materiaisMP: agregarMateriais(p.pecas) }));
+  producao = listaProducao.map(p => ({ ...p, materiaisMP: agregarMateriais(p.pecas) }));
 
   estoqueMP = listaEstoque;
 }
