@@ -53,6 +53,10 @@
   .stepper button{width:42px; height:48px; border:none; background:transparent; font-size:20px; color:var(--indigo); cursor:pointer; font-weight:600;}
   .stepper button:active{background:var(--linha);}
   .stepper input{flex:1; border:none; background:transparent; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:600; color:var(--carvao); width:100%; padding:0; outline:none;}
+  .stepper-mcm{padding:0 8px; gap:2px;}
+  .stepper-mcm input{flex:none; width:38px; -moz-appearance:textfield;}
+  .stepper-mcm input::-webkit-outer-spin-button, .stepper-mcm input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  .stepper-mcm .stepper-suf{font-size:10.5px; color:var(--tinta2); font-family:'IBM Plex Mono',monospace; margin-right:8px;}
   .unidade{font-size:11px; color:var(--tinta2); text-align:center; margin-top:5px; font-family:'IBM Plex Mono',monospace;}
 
   .chips{display:flex; flex-wrap:wrap; gap:8px;}
@@ -107,6 +111,7 @@
   .badge.em_producao{background:#FDE9CC; color:#7A4A1E;}
   .badge.pronto{background:#E1EFE3; color:#2F4A32;}
   .badge.entregue{background:var(--linho2); color:var(--tinta2);}
+  .badge.perdido{background:#F6E2E4; color:var(--vinho);}
 
   .lista-item{background:var(--branco); border:1.5px solid var(--linha); border-radius:14px; padding:14px 16px; margin-top:10px;}
   .lista-item-topo{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
@@ -278,8 +283,23 @@ function blocoLogoEmpresa(tamanho){
 // =========================================================
 let telaAtual = 'inicio';
 let seqOrcamento = 3000;
-let orcamentos = [];   // {numero, cliente, telefone, cpf, cidade, itens:[peça], total, status, dataAprovacao}
+let orcamentos = [];   // {numero, cliente, telefone, cpf, cidade, itens:[peça], total, status, dataAprovacao, motivoPerda, dataPerda}
 let producao = [];     // {op, orcamentoNumero, cliente, telefone, cpf, cidade, pecas:[peça], materiaisMP (agregado), dataProducao, dataLimiteInstalacao, dataInstalacao, status, baixaFeita}
+
+// tela Orçamentos: qual aba está aberta, e (se houver) qual orçamento está com o seletor de motivo de perda aberto
+let filtroOrcamentos = 'abertos'; // 'abertos' | 'aprovados' | 'perdidos'
+let perdaOrcamentoNumero = null;
+
+// lista fixa de motivos de perda — nunca texto livre (mesma lógica do local da peça)
+const MOTIVOS_PERDA = [
+  { chave:'preco',        label:'Preço' },
+  { chave:'prazo',        label:'Prazo' },
+  { chave:'concorrente',  label:'Concorrente' },
+  { chave:'desistiu',     label:'Cliente desistiu' },
+  { chave:'sem_retorno',  label:'Sem retorno' },
+  { chave:'outro',        label:'Outro' },
+];
+function labelMotivoPerda(chave){ return MOTIVOS_PERDA.find(m=>m.chave===chave)?.label || chave; }
 
 // dados do cliente — persistem enquanto o orçamento (com várias peças) está sendo montado
 let clienteForm = { nome:'', telefone:'', cpf:'', cidade:'', validadeDias:15 };
@@ -566,21 +586,23 @@ function renderOrcamento(){
       <div class="campo-linha" style="margin-bottom:14px;">
         <div class="campo">
           <label>Largura</label>
-          <div class="stepper">
-            <button onclick="ajustarMedida('largura',-0.1)">–</button>
-            <input id="inLargura" type="number" step="0.01" value="${pecaForm.largura.toFixed(2)}" oninput="onMedidaInput()">
-            <button onclick="ajustarMedida('largura',0.1)">+</button>
+          <div class="stepper stepper-mcm">
+            <input id="inLarguraM" type="number" min="0" step="1" inputmode="numeric" value="${Math.floor(pecaForm.largura)}" oninput="onMedidaInput()">
+            <span class="stepper-suf">m</span>
+            <input id="inLarguraCm" type="number" min="0" max="99" step="1" inputmode="numeric" value="${Math.round((pecaForm.largura%1)*100)}" oninput="onMedidaInput()">
+            <span class="stepper-suf">cm</span>
           </div>
-          <div class="unidade">metros</div>
+          <div class="unidade">${pecaForm.largura.toFixed(2)} m</div>
         </div>
         <div class="campo">
           <label>Altura</label>
-          <div class="stepper">
-            <button onclick="ajustarMedida('altura',-0.1)">–</button>
-            <input id="inAltura" type="number" step="0.01" value="${pecaForm.altura.toFixed(2)}" oninput="onMedidaInput()">
-            <button onclick="ajustarMedida('altura',0.1)">+</button>
+          <div class="stepper stepper-mcm">
+            <input id="inAlturaM" type="number" min="0" step="1" inputmode="numeric" value="${Math.floor(pecaForm.altura)}" oninput="onMedidaInput()">
+            <span class="stepper-suf">m</span>
+            <input id="inAlturaCm" type="number" min="0" max="99" step="1" inputmode="numeric" value="${Math.round((pecaForm.altura%1)*100)}" oninput="onMedidaInput()">
+            <span class="stepper-suf">cm</span>
           </div>
-          <div class="unidade">metros</div>
+          <div class="unidade">${pecaForm.altura.toFixed(2)} m</div>
         </div>
       </div>
 
@@ -657,14 +679,13 @@ function renderOrcamento(){
   `;
 }
 
-function ajustarMedida(campo, delta){
-  pecaForm[campo] = Math.max(0.1, +(pecaForm[campo]+delta).toFixed(2));
-  document.getElementById(campo==='largura'?'inLargura':'inAltura').value = pecaForm[campo].toFixed(2);
-  if(pecaCalculoAtual) calcularPeca();
-}
 function onMedidaInput(){
-  pecaForm.largura = parseFloat(document.getElementById('inLargura').value)||0;
-  pecaForm.altura = parseFloat(document.getElementById('inAltura').value)||0;
+  const m1 = Math.max(0, parseInt(document.getElementById('inLarguraM').value)||0);
+  const cm1 = Math.min(99, Math.max(0, parseInt(document.getElementById('inLarguraCm').value)||0));
+  pecaForm.largura = +(m1 + cm1/100).toFixed(2);
+  const m2 = Math.max(0, parseInt(document.getElementById('inAlturaM').value)||0);
+  const cm2 = Math.min(99, Math.max(0, parseInt(document.getElementById('inAlturaCm').value)||0));
+  pecaForm.altura = +(m2 + cm2/100).toFixed(2);
   if(pecaCalculoAtual) calcularPeca();
 }
 function escolherTipoPeca(tipo){
@@ -991,31 +1012,107 @@ function renderOrcamentos(){
     return `<div class="cartao"><div class="vazio">Nenhum orçamento salvo ainda.<br><br>
       <button class="btn-principal" onclick="tela('orcamento')">+ Novo orçamento</button></div></div>`;
   }
+  const grupos = {
+    abertos:   orcamentos.filter(o=>o.status==='rascunho'),
+    aprovados: orcamentos.filter(o=>o.status==='aprovado'),
+    perdidos:  orcamentos.filter(o=>o.status==='perdido'),
+  };
+  const abas = [
+    {chave:'abertos',   label:'Abertos'},
+    {chave:'aprovados', label:'Aprovados'},
+    {chave:'perdidos',  label:'Perdidos'},
+  ];
+  const lista = grupos[filtroOrcamentos] || [];
   return `
     <div class="cartao">
       <h2>Orçamentos</h2>
       <p class="sub">Aprovar aqui = registrar sinal/pagamento e gerar a Ordem de Produção com todas as peças.</p>
-      ${orcamentos.slice().reverse().map(o=>{
-        const vencido = o.status==='rascunho' && o.dataValidade && new Date() > o.dataValidade;
-        return `
-        <div class="lista-item">
-          <div class="lista-item-topo">
-            <span class="titulo">Nº ${o.numero} — ${o.cliente}</span>
-            <span class="badge ${vencido?'critico':o.status}" style="${vencido?'background:#F6E2E4; color:var(--vinho);':''}">${vencido?'VENCIDO':(o.status==='rascunho'?'RASCUNHO':'✓ APROVADO')}</span>
-          </div>
-          <div class="meta">${o.cidade} · ${o.telefone}</div>
-          <div class="meta">${o.itens.length} peça${o.itens.length>1?'s':''}: ${o.itens.map(p=>p.local).join(', ')}</div>
-          <div class="meta">R$ ${fmt(o.total)}</div>
-          ${o.dataValidade ? `<div class="meta" style="${vencido?'color:var(--vinho); font-weight:700;':''}">Válido até ${fmtData(o.dataValidade)} (${o.validadeDias} dias)</div>` : ''}
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-            ${o.status==='rascunho'
-              ? `<button class="btn-mini" style="background:var(--musgo); color:var(--linho); border-color:var(--musgo);" onclick="aprovarOrcamento(${o.numero})">Registrar sinal e aprovar</button>`
-              : `<button class="btn-mini" onclick="tela('producao')">Ver na Produção →</button>`}
-            <button class="btn-mini" onclick="imprimirOrcamentoCliente(${o.numero})">🖨️ Orçamento em PDF</button>
-          </div>
-        </div>`;}).join('')}
+      <div class="filtro-fase">
+        ${abas.map(a=>`<button class="${filtroOrcamentos===a.chave?'ativo':''}" onclick="trocarFiltroOrcamentos('${a.chave}')">${a.label} (${grupos[a.chave].length})</button>`).join('')}
+      </div>
+    </div>
+    <div class="cartao">
+      ${lista.length===0 ? `<div class="vazio">Nada aqui.</div>` : lista.slice().reverse().map(o=>renderItemOrcamento(o)).join('')}
     </div>
   `;
+}
+
+function renderItemOrcamento(o){
+  const vencido = o.status==='rascunho' && o.dataValidade && new Date() > o.dataValidade;
+  const badgeLabel = vencido ? 'VENCIDO' : o.status==='rascunho' ? 'RASCUNHO' : o.status==='aprovado' ? '✓ APROVADO' : o.status==='perdido' ? 'PERDIDO' : o.status;
+  return `
+    <div class="lista-item">
+      <div class="lista-item-topo">
+        <span class="titulo">Nº ${o.numero} — ${o.cliente}</span>
+        <span class="badge ${vencido?'critico':o.status}" style="${vencido?'background:#F6E2E4; color:var(--vinho);':''}">${badgeLabel}</span>
+      </div>
+      <div class="meta">${o.cidade} · ${o.telefone}</div>
+      <div class="meta">${o.itens.length} peça${o.itens.length>1?'s':''}: ${o.itens.map(p=>p.local).join(', ')}</div>
+      <div class="meta">R$ ${fmt(o.total)}</div>
+      ${o.dataValidade && o.status==='rascunho' ? `<div class="meta" style="${vencido?'color:var(--vinho); font-weight:700;':''}">Válido até ${fmtData(o.dataValidade)} (${o.validadeDias} dias)</div>` : ''}
+      ${o.status==='perdido' ? `<div class="meta">Motivo: <b>${labelMotivoPerda(o.motivoPerda)}</b>${o.dataPerda?` · perdido em ${fmtData(o.dataPerda)}`:''}</div>` : ''}
+
+      ${perdaOrcamentoNumero===o.numero ? `
+        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--linha);">
+          <div style="font-size:11.5px; font-weight:700; color:var(--tinta2); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">Motivo da perda</div>
+          <div class="filtro-fase">
+            ${MOTIVOS_PERDA.map(m=>`<button onclick="confirmarPerda(${o.numero},'${m.chave}')">${m.label}</button>`).join('')}
+          </div>
+          <button class="btn-mini" style="margin-top:8px;" onclick="cancelarSelecaoPerda()">Cancelar</button>
+        </div>
+      ` : `
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          ${o.status==='rascunho' ? `
+            <button class="btn-mini" style="background:var(--musgo); color:var(--linho); border-color:var(--musgo);" onclick="aprovarOrcamento(${o.numero})">Registrar sinal e aprovar</button>
+            <button class="btn-mini" onclick="abrirSelecaoPerda(${o.numero})">Marcar como perdido</button>
+            <button class="btn-mini" style="color:var(--vinho); border-color:var(--vinho);" onclick="excluirOrcamento(${o.numero})">Excluir</button>
+          ` : ''}
+          ${o.status==='aprovado' ? `<button class="btn-mini" onclick="tela('producao')">Ver na Produção →</button>` : ''}
+          ${o.status==='perdido' ? `
+            <button class="btn-mini" style="background:var(--indigo); color:var(--linho); border-color:var(--indigo);" onclick="reabrirOrcamento(${o.numero})">Reabrir</button>
+            <button class="btn-mini" style="color:var(--vinho); border-color:var(--vinho);" onclick="excluirOrcamento(${o.numero})">Excluir</button>
+          ` : ''}
+          <button class="btn-mini" onclick="imprimirOrcamentoCliente(${o.numero})">🖨️ Orçamento em PDF</button>
+        </div>
+      `}
+    </div>`;
+}
+
+function trocarFiltroOrcamentos(chave){ filtroOrcamentos = chave; perdaOrcamentoNumero = null; tela('orcamentos'); }
+function abrirSelecaoPerda(numero){ perdaOrcamentoNumero = numero; tela('orcamentos'); }
+function cancelarSelecaoPerda(){ perdaOrcamentoNumero = null; tela('orcamentos'); }
+
+async function confirmarPerda(numero, motivo){
+  const o = orcamentos.find(x=>x.numero===numero);
+  if(!o) return;
+  try{
+    await window.__db.marcarPerdidoNoBanco(o.id, motivo);
+    perdaOrcamentoNumero = null;
+    await carregarDados();
+    filtroOrcamentos = 'perdidos';
+    tela('orcamentos');
+  }catch(e){ alert('Erro ao marcar como perdido: '+e.message); }
+}
+
+async function reabrirOrcamento(numero){
+  const o = orcamentos.find(x=>x.numero===numero);
+  if(!o || !confirm(`Reabrir o orçamento Nº ${o.numero}? Ele volta pra "rascunho" e pode ser editado/aprovado de novo.`)) return;
+  try{
+    await window.__db.reabrirOrcamentoNoBanco(o.id);
+    await carregarDados();
+    filtroOrcamentos = 'abertos';
+    tela('orcamentos');
+  }catch(e){ alert('Erro ao reabrir orçamento: '+e.message); }
+}
+
+async function excluirOrcamento(numero){
+  const o = orcamentos.find(x=>x.numero===numero);
+  if(!o || !confirm(`Excluir o orçamento Nº ${o.numero}? Ele sai da lista, mas continua salvo no banco (não é apagado de verdade).`)) return;
+  try{
+    await window.__db.arquivarOrcamentoNoBanco(o.id);
+    await carregarDados();
+    tela('orcamentos');
+  }catch(e){ alert('Erro ao excluir orçamento: '+e.message); }
 }
 
 async function aprovarOrcamento(numero){
