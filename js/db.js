@@ -48,12 +48,16 @@ function pecaParaBanco(p) {
     detalhe_calculo: p.custoItens,
     materiais: p.materiaisMP,
     valor: p.total,
-    foto_url: p.fotoUrl || null, // preenchido depois do upload, ver enviarFotoPeca()
+    // .fotoUrl = acabou de subir agora (peça nova ou foto trocada, ver enviarFotoPeca()).
+    // Se não subiu nada agora mas .foto já é uma URL do Storage (peça existente sem
+    // troca de foto na edição), mantém ela — nunca apaga a foto só por editar outra coisa.
+    foto_url: p.fotoUrl || (p.foto && !p.foto.startsWith('data:') ? p.foto : null),
   };
 }
 
 function pecaDoBanco(row) {
   return {
+    id: row.id, // usado só pra edição: diferenciar peça já existente de peça nova
     tipoPeca: row.tipo_peca,
     local: row.local,
     largura: Number(row.largura),
@@ -153,6 +157,65 @@ export async function salvarOrcamento(clienteForm, itens) {
   if (erroPecas) throw erroPecas;
 
   return orcamento.numero;
+}
+
+// Edita um orçamento que ainda está em rascunho (cliente + peças). O banco só deixa
+// editar enquanto status='rascunho' (trigger trg_orcamentos_trava_edicao / trg_pecas_trava_e_log)
+// e cada alteração real fica registrada em orcamento_historico automaticamente.
+// itens = itensOrcamento atual (peças que já existiam trazem `.id`; peças novas não trazem).
+export async function editarOrcamentoNoBanco(orcamentoId, clienteForm, itens) {
+  const total = itens.reduce((s, p) => s + p.total, 0);
+
+  const { error: erroOrc } = await supabase
+    .from('orcamentos')
+    .update({
+      cliente_nome: clienteForm.nome.trim(),
+      cliente_telefone: clienteForm.telefone.trim(),
+      cliente_cpf: clienteForm.cpf.trim() || null,
+      cliente_cidade: clienteForm.cidade.trim() || null,
+      validade_dias: clienteForm.validadeDias,
+      total,
+    })
+    .eq('id', orcamentoId);
+  if (erroOrc) throw erroOrc;
+
+  // peças que já existiam no banco antes desta edição
+  const { data: pecasAtuais, error: erroBusca } = await supabase
+    .from('pecas').select('id').eq('orcamento_id', orcamentoId);
+  if (erroBusca) throw erroBusca;
+  const idsAtuais = new Set(pecasAtuais.map(p => p.id));
+  const idsMantidos = new Set(itens.filter(p => p.id).map(p => p.id));
+
+  // 1) remove peças que existiam e não estão mais na lista (usuário removeu)
+  const idsRemover = [...idsAtuais].filter(id => !idsMantidos.has(id));
+  if (idsRemover.length > 0) {
+    const { error } = await supabase.from('pecas').delete().in('id', idsRemover);
+    if (error) throw error;
+  }
+
+  // 2) atualiza as que já existiam (o trigger só loga se algo realmente mudou)
+  for (const p of itens.filter(p => p.id)) {
+    const { error } = await supabase.from('pecas').update(pecaParaBanco(p)).eq('id', p.id);
+    if (error) throw error;
+  }
+
+  // 3) insere as peças novas adicionadas durante a edição
+  const novas = itens.filter(p => !p.id).map(p => ({ orcamento_id: orcamentoId, ...pecaParaBanco(p) }));
+  if (novas.length > 0) {
+    const { error } = await supabase.from('pecas').insert(novas);
+    if (error) throw error;
+  }
+}
+
+// Histórico de alterações de um orçamento (enquanto esteve em rascunho), mais recente primeiro.
+export async function listarHistoricoOrcamento(orcamentoId) {
+  const { data, error } = await supabase
+    .from('orcamento_historico')
+    .select('*')
+    .eq('orcamento_id', orcamentoId)
+    .order('data_hora', { ascending: false });
+  if (error) throw error;
+  return data;
 }
 
 // Aprova (registra sinal) e gera a OP.
