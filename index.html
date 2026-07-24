@@ -301,6 +301,9 @@ let producao = [];     // {op, orcamentoNumero, cliente, telefone, cpf, cidade, 
 // tela Orçamentos: qual aba está aberta, e (se houver) qual orçamento está com o seletor de motivo de perda aberto
 let filtroOrcamentos = 'abertos'; // 'abertos' | 'aprovados' | 'perdidos'
 let perdaOrcamentoNumero = null;
+let orcamentoEditando = null; // {id, numero} do orçamento em edição, ou null = "novo orçamento"
+let historicoOrcamentoNumero = null; // número do orçamento com o painel de histórico aberto
+let historicoOrcamentoLista = []; // linhas de orcamento_historico do orçamento acima
 
 // lista fixa de motivos de perda — nunca texto livre (mesma lógica do local da peça)
 const MOTIVOS_PERDA = [
@@ -355,6 +358,7 @@ function fmt(v){ return (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2,
 function arredCima(v){ return Math.ceil(v - 1e-9); }
 function fmtData(d){ return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}); }
 function fmtDataAno(d){ return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric'}); }
+function fmtDataHoraCurta(isoStr){ return new Date(isoStr).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}); }
 // chave de data no fuso LOCAL (YYYY-MM-DD) — usar sempre pra agrupar/comparar dias em
 // calendários e filtros. toISOString() converte pra UTC e pode "virar o dia" errado
 // quando a data tem horário (ex: dataAprovacao), então evitamos isso aqui.
@@ -523,6 +527,16 @@ function renderOrcamento(){
   const totalGeral = itensOrcamento.reduce((s,p)=>s+p.total,0);
 
   return `
+    ${orcamentoEditando ? `
+      <div class="cartao" style="background:var(--linho2); border:1.5px dashed var(--indigo);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:700; color:var(--indigo);">✏️ Editando orçamento Nº ${orcamentoEditando.numero}</div>
+            <p class="sub" style="margin:4px 0 0;">Cada alteração salva fica registrada no histórico deste orçamento.</p>
+          </div>
+          <button class="btn-mini" onclick="cancelarEdicaoOrcamento()">Cancelar edição</button>
+        </div>
+      </div>` : ''}
     <div class="cartao">
       <h2><span class="num">1</span>Cliente</h2>
       <p class="sub">Vale pra todas as peças deste orçamento. <b>* obrigatório</b></p>
@@ -686,7 +700,7 @@ function renderOrcamento(){
 
     ${itensOrcamento.length>0 ? `
       <button class="btn-principal btn-ok" id="btnSalvarOrcamento" onclick="salvarOrcamentoCompleto()">
-        Salvar orçamento (${itensOrcamento.length} peça${itensOrcamento.length>1?'s':''} · R$ ${fmt(totalGeral)})
+        ${orcamentoEditando ? `Salvar alterações (${itensOrcamento.length} peça${itensOrcamento.length>1?'s':''} · R$ ${fmt(totalGeral)})` : `Salvar orçamento (${itensOrcamento.length} peça${itensOrcamento.length>1?'s':''} · R$ ${fmt(totalGeral)})`}
       </button>` : ''}
   `;
 }
@@ -1011,14 +1025,20 @@ async function salvarOrcamentoCompleto(){
   if(itensOrcamento.length===0) return;
 
   const botao = document.getElementById('btnSalvarOrcamento');
-  if(botao){ botao.disabled = true; botao.textContent = 'Salvando…'; }
+  const textoOriginalBotao = botao ? botao.textContent : '';
+  if(botao){ botao.disabled = true; botao.textContent = orcamentoEditando ? 'Salvando alterações…' : 'Salvando…'; }
   try{
-    // sobe a foto de cada peça pro Storage antes de gravar o orçamento
+    // sobe a foto de cada peça pro Storage antes de gravar (só peças com foto nova em base64)
     for(const peca of itensOrcamento){
-      if(peca.foto){ peca.fotoUrl = await window.__db.enviarFotoPeca(peca.foto); }
+      if(peca.foto && peca.foto.startsWith('data:')){ peca.fotoUrl = await window.__db.enviarFotoPeca(peca.foto); }
     }
-    await window.__db.salvarOrcamento(clienteForm, itensOrcamento);
+    if(orcamentoEditando){
+      await window.__db.editarOrcamentoNoBanco(orcamentoEditando.id, clienteForm, itensOrcamento);
+    } else {
+      await window.__db.salvarOrcamento(clienteForm, itensOrcamento);
+    }
     await carregarDados();
+    orcamentoEditando = null;
     clienteForm = { nome:'', telefone:'', cpf:'', cidade:'', validadeDias:15 };
     itensOrcamento = [];
     pecaForm = { tipoPeca:'cortina', local:'', largura:2.00, altura:2.50, camadas:new Set(), instalacao:null, varianteTrilho:'simples', varianteVarao:'grosso', cromado:false, persianaTipo:'rolo_screen', foto:null };
@@ -1026,8 +1046,39 @@ async function salvarOrcamentoCompleto(){
     tela('orcamentos');
   }catch(e){
     alert('Erro ao salvar orçamento: '+e.message);
-    if(botao){ botao.disabled = false; botao.textContent = 'Salvar orçamento'; }
+    if(botao){ botao.disabled = false; botao.textContent = textoOriginalBotao; }
   }
+}
+
+// Carrega um orçamento em rascunho na tela de "Novo orçamento" pra edição.
+// O banco (trigger) bloqueia se o orçamento não estiver mais em rascunho.
+function editarOrcamento(numero){
+  const o = orcamentos.find(x=>x.numero===numero);
+  if(!o || o.status!=='rascunho') return;
+  orcamentoEditando = { id:o.id, numero:o.numero };
+  clienteForm = {
+    nome: o.cliente || '',
+    telefone: o.telefone || '',
+    cpf: (o.cpf && o.cpf!=='—') ? o.cpf : '',
+    cidade: (o.cidade && o.cidade!=='—') ? o.cidade : '',
+    validadeDias: o.validadeDias || 15,
+  };
+  // cada peça já vem com `id` do banco (ver pecaDoBanco em db.js) — é isso que permite
+  // ao salvar diferenciar peça editada de peça nova.
+  itensOrcamento = o.itens.map(p=>({...p}));
+  pecaForm = { tipoPeca:'cortina', local:'', largura:2.00, altura:2.50, camadas:new Set(), instalacao:null, varianteTrilho:'simples', varianteVarao:'grosso', cromado:false, persianaTipo:'rolo_screen', foto:null };
+  pecaCalculoAtual = null;
+  tela('orcamento');
+}
+
+function cancelarEdicaoOrcamento(){
+  if(!confirm('Cancelar a edição? As alterações feitas nesta tela ainda não foram salvas e serão perdidas.')) return;
+  orcamentoEditando = null;
+  clienteForm = { nome:'', telefone:'', cpf:'', cidade:'', validadeDias:15 };
+  itensOrcamento = [];
+  pecaForm = { tipoPeca:'cortina', local:'', largura:2.00, altura:2.50, camadas:new Set(), instalacao:null, varianteTrilho:'simples', varianteVarao:'grosso', cromado:false, persianaTipo:'rolo_screen', foto:null };
+  pecaCalculoAtual = null;
+  tela('orcamentos');
 }
 
 // =========================================================
@@ -1090,6 +1141,7 @@ function renderItemOrcamento(o){
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
           ${o.status==='rascunho' ? `
             <button class="btn-mini" style="background:var(--musgo); color:var(--linho); border-color:var(--musgo);" onclick="aprovarOrcamento(${o.numero})">Registrar sinal e aprovar</button>
+            <button class="btn-mini" onclick="editarOrcamento(${o.numero})">✏️ Editar</button>
             <button class="btn-mini" onclick="abrirSelecaoPerda(${o.numero})">Marcar como perdido</button>
             <button class="btn-mini" style="color:var(--vinho); border-color:var(--vinho);" onclick="excluirOrcamento(${o.numero})">Excluir</button>
           ` : ''}
@@ -1099,8 +1151,32 @@ function renderItemOrcamento(o){
             <button class="btn-mini" style="color:var(--vinho); border-color:var(--vinho);" onclick="excluirOrcamento(${o.numero})">Excluir</button>
           ` : ''}
           <button class="btn-mini" onclick="imprimirOrcamentoCliente(${o.numero})">🖨️ Orçamento em PDF</button>
+          <button class="btn-mini" onclick="${historicoOrcamentoNumero===o.numero ? 'fecharHistorico()' : `verHistorico(${o.numero})`}">🕘 ${historicoOrcamentoNumero===o.numero ? 'Fechar histórico' : 'Histórico'}</button>
         </div>
       `}
+
+      ${historicoOrcamentoNumero===o.numero ? renderPainelHistorico() : ''}
+    </div>`;
+}
+
+function renderPainelHistorico(){
+  if(historicoOrcamentoLista.length===0){
+    return `<div class="meta" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--linha);">Nenhuma alteração registrada — orçamento igual a quando foi criado.</div>`;
+  }
+  const LABEL_TIPO = { cliente_editado:'Dados do cliente', peca_adicionada:'Peça adicionada', peca_editada:'Peça editada', peca_removida:'Peça removida' };
+  const LABEL_CAMPO = { cliente_nome:'Nome', cliente_telefone:'Telefone', cliente_cpf:'CPF', cliente_cidade:'Cidade', total:'Total' };
+  return `
+    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--linha);">
+      <div style="font-size:11.5px; font-weight:700; color:var(--tinta2); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">Histórico de alterações</div>
+      ${historicoOrcamentoLista.map(h=>{
+        const rotulo = LABEL_TIPO[h.tipo] || h.tipo;
+        const campo = h.tipo==='cliente_editado' ? (LABEL_CAMPO[h.campo]||h.campo) : h.campo;
+        const de = h.valor_anterior ? ` de "${h.valor_anterior}"` : '';
+        const para = h.valor_novo ? ` para "${h.valor_novo}"` : '';
+        return `<div class="meta" style="margin-bottom:4px;">
+          <b>${fmtDataHoraCurta(h.data_hora)}</b> — ${rotulo}${campo?` (${campo})`:''}${de}${para}
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -1130,6 +1206,22 @@ async function reabrirOrcamento(numero){
     tela('orcamentos');
   }catch(e){ alert('Erro ao reabrir orçamento: '+e.message); }
 }
+
+async function verHistorico(numero){
+  const o = orcamentos.find(x=>x.numero===numero);
+  if(!o) return;
+  historicoOrcamentoNumero = numero;
+  historicoOrcamentoLista = [];
+  tela('orcamentos'); // já abre o painel, mostrando "carregando" implícito
+  try{
+    historicoOrcamentoLista = await window.__db.listarHistoricoOrcamento(o.id);
+  }catch(e){
+    alert('Erro ao buscar histórico: '+e.message);
+    historicoOrcamentoNumero = null;
+  }
+  tela('orcamentos');
+}
+function fecharHistorico(){ historicoOrcamentoNumero = null; historicoOrcamentoLista = []; tela('orcamentos'); }
 
 async function excluirOrcamento(numero){
   const o = orcamentos.find(x=>x.numero===numero);
